@@ -4,7 +4,7 @@
 import os
 from typing import Optional
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -84,7 +84,7 @@ class StoreOut(BaseModel):
 # Response Serialization
 # (모델 -> 프론트 응답 형태 변환)
 # =========================
-def to_release_dict(r: Release):
+def to_release_dict(r: Release, db: Session):
     listings = []
     
     for l in r.listings:
@@ -94,7 +94,7 @@ def to_release_dict(r: Release):
         listings.append(
             {
                 "id": str(l.id),
-                "sourceName": l.source_name,
+                "sourceName": l.source_name or "",
                 "sourceProductTitle": l.source_product_title,
                 "url": l.url,
                 "collectedAgo": "just now",
@@ -161,24 +161,26 @@ def add_listing(release_id: str, payload: ListingIn, db: Session = Depends(get_d
         rid = int(release_id)
     except ValueError:
         return None
-
+    
     r = db.query(Release).filter(Release.id == rid).first()
     if not r:
         return None
 
+    store = db.query(Store).filter(Store.slug == payload.storeSlug).first()
+    if not store:
+        raise HTTPException(status_code=400, detail="존재하지 않는 스토어입니다.")
+
     l = Listing(
         release_id=r.id,
-        source_name=payload.sourceName,
         source_slug=store.slug,
         source_product_title=payload.sourceProductTitle,
         url=payload.url,
-        image_url=store.icon_url,
     )
 
     db.add(l)
     db.commit()
     db.refresh(r)
-    return to_release_dict(r)
+    return to_release_dict(r, db)
 
 
 # -------- Stores (추가 예정) --------
