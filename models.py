@@ -32,6 +32,8 @@ class Listing(Base):
     release_id: Mapped[int] = mapped_column(ForeignKey("releases.id"), index=True)
 
     source_name: Mapped[str] = mapped_column(String)
+    source_slug: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    
     source_product_title: Mapped[str] = mapped_column(String)
     url: Mapped[str] = mapped_column(String)
     image_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -39,3 +41,13 @@ class Listing(Base):
     collected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     release: Mapped["Release"] = relationship(back_populates="listings")
+
+
+class Store(Base):
+    __tablename__ = "stores"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String, unique=True, index=True)   # 표시용
+    slug: Mapped[str] = mapped_column(String(64), unique=True, index=True)  # 식별자
+    icon_url: Mapped[str] = mapped_column(String, nullable=False)  # "/store-icons/xxx.png"
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
