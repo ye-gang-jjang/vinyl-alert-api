@@ -125,7 +125,7 @@ def health_check():
 @app.get("/releases")
 def get_releases(db: Session = Depends(get_db)):
     releases = db.query(Release).order_by(Release.id.desc()).all()
-    return [to_release_dict(r) for r in releases]
+    return [to_release_dict(r, db) for r in releases]
 
 
 @app.get("/releases/{release_id}")
@@ -138,7 +138,7 @@ def get_release_by_id(release_id: str, db: Session = Depends(get_db)):
     r = db.query(Release).filter(Release.id == rid).first()
     if not r:
         return None
-    return to_release_dict(r)
+    return to_release_dict(r, db)
 
 
 @app.post("/releases")
@@ -151,7 +151,7 @@ def create_release(payload: ReleaseIn, db: Session = Depends(get_db)):
     db.add(r)
     db.commit()
     db.refresh(r)
-    return to_release_dict(r)
+    return to_release_dict(r, db)
 
 
 # -------- Listings --------
