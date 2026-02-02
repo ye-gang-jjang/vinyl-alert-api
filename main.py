@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from db import engine, SessionLocal
-from models import Base, Release, Listing
+from models import Base, Release, Listing, Store
 from store_icons import get_store_icon_url
 
 
@@ -18,7 +18,7 @@ from store_icons import get_store_icon_url
 # App & DB bootstrap
 # =========================
 # ✅ 앱 시작 시 테이블 생성 (없으면 생성, 있으면 패스)
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Vinyl Alert API")
 
@@ -62,15 +62,22 @@ class ReleaseIn(BaseModel):
 
 
 class ListingIn(BaseModel):
-    sourceName: str
+    storeSlug: str
     sourceProductTitle: str
     url: str
-    collectedAgo: str  # MVP에서는 표시용(저장은 collected_at)
-    imageUrl: Optional[str] = None
+    collectedAgo: str
 
 
-# (선택) 앞으로 Store 등록을 추가한다면 여기에 StoreIn/StoreOut 같은 스키마를 추가하거나,
-# schemas.py로 빼는 게 더 깔끔함.
+class StoreIn(BaseModel):
+    name: str
+    slug: str
+    iconUrl: str  # 프론트 camelCase 유지
+
+class StoreOut(BaseModel):
+    id: str
+    name: str
+    slug: str
+    iconUrl: str
 
 
 # =========================
@@ -158,9 +165,10 @@ def add_listing(release_id: str, payload: ListingIn, db: Session = Depends(get_d
     l = Listing(
         release_id=r.id,
         source_name=payload.sourceName,
+        source_slug=store.slug,
         source_product_title=payload.sourceProductTitle,
         url=payload.url,
-        image_url=get_store_icon_url(payload.sourceName),
+        image_url=store.icon_url,
     )
 
     db.add(l)
@@ -172,3 +180,39 @@ def add_listing(release_id: str, payload: ListingIn, db: Session = Depends(get_d
 # -------- Stores (추가 예정) --------
 # ✅ "스토어 등록"을 추가한다면, 라우터는 가장 아래에 붙이는 게 관리가 쉬움
 # 예: @app.get("/stores"), @app.post("/stores")
+@app.get("/stores")
+def get_stores(db: Session = Depends(get_db)):
+    stores = db.query(Store).order_by(Store.name.asc()).all()
+    return [
+        {
+            "id": str(s.id),
+            "name": s.name,
+            "slug": s.slug,
+            "iconUrl": s.icon_url,
+        }
+        for s in stores
+    ]
+
+
+@app.post("/stores")
+def create_store(payload: StoreIn, db: Session = Depends(get_db)):
+    # slug 중복 체크(유니크 인덱스도 있지만 메시지 친절하게)
+    exists = db.query(Store).filter(Store.slug == payload.slug).first()
+    if exists:
+        return {"error": "slug already exists"}  # (원하면 HTTPException으로 바꿔줄게)
+
+    store = Store(
+        name=payload.name,
+        slug=payload.slug,
+        icon_url=payload.iconUrl,
+    )
+    db.add(store)
+    db.commit()
+    db.refresh(store)
+
+    return {
+        "id": str(store.id),
+        "name": store.name,
+        "slug": store.slug,
+        "iconUrl": store.icon_url,
+    }

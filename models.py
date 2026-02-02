@@ -47,7 +47,7 @@ class Store(Base):
     __tablename__ = "stores"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String, unique=True, index=True)   # 표시용
-    slug: Mapped[str] = mapped_column(String(64), unique=True, index=True)  # 식별자
-    icon_url: Mapped[str] = mapped_column(String, nullable=False)  # "/store-icons/xxx.png"
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    slug: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    icon_url: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
