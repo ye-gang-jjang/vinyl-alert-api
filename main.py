@@ -98,7 +98,7 @@ def to_release_dict(r: Release, db: Session):
         listings.append(
             {
                 "id": str(l.id),
-                "sourceName": l.source_name,
+                "sourceName": l.store_name,
                 "sourceProductTitle": l.source_product_title,
                 "url": l.url,
                 "collectedAgo": "just now",
