@@ -50,8 +50,6 @@ def get_db():
 class ReleaseIn(BaseModel):
     artistName: str
     albumTitle: str
-    color: Optional[str] = None
-    format: Optional[str] = None
     coverImageUrl: Optional[str] = None
 
 
@@ -84,8 +82,6 @@ def to_release_dict(r: Release):
         "id": str(r.id),
         "artistName": r.artist_name,
         "albumTitle": r.album_title,
-        "color": r.color,
-        "format": r.format,
         "coverImageUrl": r.cover_image_url,
         "latestCollectedAgo": "just now",
         "storesCount": len(listings),
@@ -125,8 +121,6 @@ def create_release(payload: ReleaseIn, db: Session = Depends(get_db)):
     r = Release(
         artist_name=payload.artistName,
         album_title=payload.albumTitle,
-        color=payload.color,
-        format=payload.format,
         cover_image_url=payload.coverImageUrl,
     )
     db.add(r)

@@ -14,8 +14,6 @@ class Release(Base):
     artist_name: Mapped[str] = mapped_column(String, index=True)
     album_title: Mapped[str] = mapped_column(String, index=True)
 
-    color: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    format: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     cover_image_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
