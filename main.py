@@ -86,7 +86,11 @@ class StoreOut(BaseModel):
 # =========================
 def to_release_dict(r: Release):
     listings = []
+    
     for l in r.listings:
+        store_name = l.source_name
+        store_icon = l.image_url
+        
         listings.append(
             {
                 "id": str(l.id),
@@ -94,7 +98,7 @@ def to_release_dict(r: Release):
                 "sourceProductTitle": l.source_product_title,
                 "url": l.url,
                 "collectedAgo": "just now",
-                "imageUrl": l.image_url,
+                "imageUrl": store_icon or "",
             }
         )
 
