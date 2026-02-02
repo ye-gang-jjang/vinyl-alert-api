@@ -11,8 +11,6 @@ from sqlalchemy.orm import Session
 
 from db import engine, SessionLocal
 from models import Base, Release, Listing, Store
-from store_icons import get_store_icon_url
-
 
 # =========================
 # App & DB bootstrap
@@ -88,17 +86,23 @@ def to_release_dict(r: Release, db: Session):
     listings = []
     
     for l in r.listings:
-        store_name = l.source_name
-        store_icon = l.image_url
+        store_name = ""
+        store_icon = ""
+        
+        if l.source_slug:
+            s = db.query(Store).filter(Store.slug == l.source_slug).first()
+            if s:
+                store_name = s.name
+                store_icon = s.icon_url
         
         listings.append(
             {
                 "id": str(l.id),
-                "sourceName": l.source_name or "",
+                "sourceName": l.source_name,
                 "sourceProductTitle": l.source_product_title,
                 "url": l.url,
                 "collectedAgo": "just now",
-                "imageUrl": store_icon or "",
+                "imageUrl": store_icon,
             }
         )
 
