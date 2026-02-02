@@ -21,7 +21,10 @@ app = FastAPI(title="Vinyl Alert API")
 # ✅ CORS (환경변수 기반)
 # --------------------
 def get_allowed_origins():
-    raw = os.getenv("ALLOW_ORIGINS", "http://localhost:3000")
+    raw = os.getenv(
+        "ALLOW_ORIGINS", 
+        "http://localhost:3000"
+        )
     return [o.strip() for o in raw.split(",") if o.strip()]
 
 ALLOWED_ORIGINS = get_allowed_origins()
