@@ -1,9 +1,8 @@
 STORE_ICON_MAP = {
     "서울 바이닐": "/store-icons/seoulvinyl.png",
-    "교보문고": "/store-icons/kyobo.png",
     "스마트스토어": "/store-icons/smartstore.png",
-    "인스타": "/store-icons/instagram.png",
-    "Instagram": "/store-icons/instagram.png",
+    "예스24": "/store-icons/yes24.png",
+    "인스타": "/store-icons/instagram.png"
 }
 
 def get_store_icon_url(store_name: str):
