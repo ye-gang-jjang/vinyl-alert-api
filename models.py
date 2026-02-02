@@ -31,12 +31,9 @@ class Listing(Base):
 
     release_id: Mapped[int] = mapped_column(ForeignKey("releases.id"), index=True)
 
-    source_name: Mapped[str] = mapped_column(String)
-    source_slug: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
-    
+    source_slug: Mapped[str] = mapped_column(String, index=True)  # nullable=False면 여기도 Optional 아님
     source_product_title: Mapped[str] = mapped_column(String)
     url: Mapped[str] = mapped_column(String)
-    image_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     collected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
