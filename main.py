@@ -175,6 +175,7 @@ def delete_release(release_id: str, db: Session = Depends(get_db)):
     return
 
 
+
 # -------- Listings --------
 @app.post("/releases/{release_id}/listings")
 def add_listing(release_id: str, payload: ListingIn, db: Session = Depends(get_db)):
