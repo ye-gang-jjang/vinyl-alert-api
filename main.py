@@ -153,6 +153,27 @@ def create_release(payload: ReleaseIn, db: Session = Depends(get_db)):
     db.refresh(r)
     return to_release_dict(r, db)
 
+@app.delete("/releases/{release_id}", status_code=204)
+def delete_release(release_id: str, db: Session = Depends(get_db)):
+    try:
+        rid = int(release_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid release id")
+
+    r = db.query(Release).filter(Release.id == rid).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Release not found")
+
+    # 판매처가 남아 있으면 삭제 금지
+    if r.listings and len(r.listings) > 0:
+        raise HTTPException(
+            status_code=400, detail="먼저 해당 릴리즈의 판매처를 삭제해 주세요."
+        )
+
+    db.delete(r)
+    db.commit()
+    return
+
 
 # -------- Listings --------
 @app.post("/releases/{release_id}/listings")
@@ -183,6 +204,20 @@ def add_listing(release_id: str, payload: ListingIn, db: Session = Depends(get_d
 
     return to_release_dict(r, db)
 
+@app.delete("/listings/{listing_id}", status_code=204)
+def delete_listing(listing_id: str, db: Session = Depends(get_db)):
+    try:
+        lid = int(listing_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid listing id")
+
+    l = db.query(Listing).filter(Listing.id == lid).first()
+    if not l:
+        raise HTTPException(status_code=404, detail="Listing not found")
+
+    db.delete(l)
+    db.commit()
+    return
 
 # -------- Stores --------
 @app.get("/stores")
