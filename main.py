@@ -4,7 +4,7 @@
 import os
 from typing import Optional
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -224,15 +224,23 @@ def delete_listing(listing_id: str, db: Session = Depends(get_db)):
 @app.get("/stores")
 def get_stores(db: Session = Depends(get_db)):
     stores = db.query(Store).order_by(Store.name.asc()).all()
-    return [
-        {
-            "id": str(s.id),
-            "name": s.name,
-            "slug": s.slug,
-            "iconUrl": s.icon_url,
-        }
-        for s in stores
-    ]
+
+    result = []
+    for s in stores:
+        # ✅ 해당 store.slug를 참조하는 listing 개수
+        cnt = db.query(Listing).filter(Listing.source_slug == s.slug).count()
+
+        result.append(
+            {
+                "id": str(s.id),
+                "name": s.name,
+                "slug": s.slug,
+                "iconUrl": s.icon_url,
+                "listingsCount": cnt,
+            }
+        )
+
+    return result
 
 
 @app.post("/stores")
@@ -257,3 +265,26 @@ def create_store(payload: StoreIn, db: Session = Depends(get_db)):
         "slug": store.slug,
         "iconUrl": store.icon_url,
     }
+
+@app.delete("/stores/{store_id}", status_code=204)
+def delete_store(store_id: str, db: Session = Depends(get_db)):
+    try:
+        sid = int(store_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid store id")
+
+    store = db.query(Store).filter(Store.id == sid).first()
+    if not store:
+        raise HTTPException(status_code=404, detail="store not found")
+
+    # ✅ 참조 listing 존재하면 삭제 금지
+    cnt = db.query(Listing).filter(Listing.source_slug == store.slug).count()
+    if cnt > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"store is referenced by {cnt} listings",
+        )
+
+    db.delete(store)
+    db.commit()
+    return Response(status_code=204)
