@@ -47,9 +47,6 @@ class Listing(Base):
     # ✅ collected_at 기본값(리스트 추가 시 자동 기록)
     collected_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    # ✅ created_at도 통일해서 넣고 싶으면 사용(선택)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-
     # 관계
     release = relationship("Release", back_populates="listings")
 
