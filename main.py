@@ -2,7 +2,7 @@
 # Imports
 # =========================
 import os
-from typing import Optional
+from typing import Optional, Literal
 
 from fastapi import FastAPI, Depends, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -52,6 +52,9 @@ def get_db():
 # =========================
 # Pydantic Schemas (Request)
 # =========================
+ListingStatus = Literal["ON_SALE", "PREORDER", "SOLD_OUT"]
+
+
 class ReleaseIn(BaseModel):
     artistName: str
     albumTitle: str
@@ -62,6 +65,13 @@ class ListingIn(BaseModel):
     storeSlug: str
     sourceProductTitle: str
     url: str
+    price: Optional[int] = None
+    status: ListingStatus = "ON_SALE"
+
+
+class ListingUpdate(BaseModel):
+    price: Optional[int] = None
+    status: Optional[ListingStatus] = None
 
 
 class StoreIn(BaseModel):
@@ -73,6 +83,28 @@ class StoreIn(BaseModel):
 # =========================
 # Response Serialization
 # =========================
+def to_listing_dict(l: Listing, db: Session):
+    store_name = ""
+    store_icon = ""
+
+    s = db.query(Store).filter(Store.slug == l.source_slug).first()
+    if s:
+        store_name = s.name
+        store_icon = s.icon_url
+
+    return {
+        "id": str(l.id),
+        "sourceName": store_name,
+        "sourceProductTitle": l.source_product_title,
+        "url": l.url,
+        "collectedAt": l.collected_at.isoformat() if l.collected_at else None,
+        "imageUrl": store_icon,
+        "latestCollectedAt": None,  # 프론트 DTO 형식 맞춤(현재 미사용)
+        "price": l.price,
+        "status": l.status,
+    }
+
+
 def to_release_dict(r: Release, db: Session):
     listings = []
 
@@ -81,25 +113,7 @@ def to_release_dict(r: Release, db: Session):
         latest_collected_at = max(l.collected_at for l in r.listings).isoformat()
 
     for l in r.listings:
-        store_name = ""
-        store_icon = ""
-
-        # ✅ storeSlug로 stores 조회해서 name/icon 구성
-        s = db.query(Store).filter(Store.slug == l.source_slug).first()
-        if s:
-            store_name = s.name
-            store_icon = s.icon_url
-
-        listings.append(
-            {
-                "id": str(l.id),
-                "sourceName": store_name,
-                "sourceProductTitle": l.source_product_title,
-                "url": l.url,
-                "collectedAt": l.collected_at.isoformat(),
-                "imageUrl": store_icon,
-            }
-        )
+        listings.append(to_listing_dict(l, db))
 
     return {
         "id": str(r.id),
@@ -109,6 +123,8 @@ def to_release_dict(r: Release, db: Session):
         "latestCollectedAt": latest_collected_at,
         "storesCount": len(listings),
         "listings": listings,
+        # ReleaseDto에 collectedAt이 있는 경우를 대비(없어도 프론트는 안전)
+        "collectedAt": r.created_at.isoformat() if getattr(r, "created_at", None) else None,
     }
 
 
@@ -153,6 +169,7 @@ def create_release(payload: ReleaseIn, db: Session = Depends(get_db)):
     db.refresh(r)
     return to_release_dict(r, db)
 
+
 @app.delete("/releases/{release_id}", status_code=204)
 def delete_release(release_id: str, db: Session = Depends(get_db)):
     try:
@@ -173,7 +190,6 @@ def delete_release(release_id: str, db: Session = Depends(get_db)):
     db.delete(r)
     db.commit()
     return
-
 
 
 # -------- Listings --------
@@ -197,13 +213,56 @@ def add_listing(release_id: str, payload: ListingIn, db: Session = Depends(get_d
         source_slug=store.slug,
         source_product_title=payload.sourceProductTitle,
         url=payload.url,
+        price=payload.price,
+        status=payload.status,
     )
 
     db.add(l)
     db.commit()
+    db.refresh(l)
     db.refresh(r)
 
     return to_release_dict(r, db)
+
+
+@app.patch("/listings/{listing_id}")
+def update_listing(listing_id: str, payload: ListingUpdate, db: Session = Depends(get_db)):
+    try:
+        lid = int(listing_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid listing id")
+
+    l = db.query(Listing).filter(Listing.id == lid).first()
+    if not l:
+        raise HTTPException(status_code=404, detail="Listing not found")
+
+    fields = payload.model_fields_set  # ✅ pydantic v2: 어떤 필드가 요청에 포함됐는지
+
+    # status 업데이트(요청에 포함된 경우만)
+    if "status" in fields:
+        if payload.status is None:
+            raise HTTPException(status_code=400, detail="status cannot be null")
+
+        l.status = payload.status
+
+        # 정책: 품절이면 가격은 무조건 null
+        if payload.status == "SOLD_OUT":
+            l.price = None
+
+    # price 업데이트(요청에 포함된 경우만)
+    if "price" in fields:
+        # price: null -> 지우기
+        if payload.price is None:
+            l.price = None
+        else:
+            # 품절이면 price는 무시
+            if l.status != "SOLD_OUT":
+                l.price = payload.price
+
+    db.commit()
+    db.refresh(l)
+    return to_listing_dict(l, db)
+
 
 @app.delete("/listings/{listing_id}", status_code=204)
 def delete_listing(listing_id: str, db: Session = Depends(get_db)):
@@ -219,6 +278,7 @@ def delete_listing(listing_id: str, db: Session = Depends(get_db)):
     db.delete(l)
     db.commit()
     return
+
 
 # -------- Stores --------
 @app.get("/stores")
@@ -265,6 +325,7 @@ def create_store(payload: StoreIn, db: Session = Depends(get_db)):
         "slug": store.slug,
         "iconUrl": store.icon_url,
     }
+
 
 @app.delete("/stores/{store_id}", status_code=204)
 def delete_store(store_id: str, db: Session = Depends(get_db)):

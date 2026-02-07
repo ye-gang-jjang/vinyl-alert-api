@@ -43,6 +43,9 @@ class Listing(Base):
 
     source_product_title = Column(String, nullable=False)
     url = Column(String, nullable=False)
+    
+    price = Column(Integer, nullable=True)
+    status = Column(String(20), nullable=False, default="ON_SALE")
 
     # ✅ collected_at 기본값(리스트 추가 시 자동 기록)
     collected_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
