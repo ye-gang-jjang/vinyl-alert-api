@@ -3,7 +3,7 @@
 # =========================
 import os
 from typing import Optional, Literal
-
+from datetime import datetime, timezone
 from fastapi import FastAPI, Depends, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -106,14 +106,23 @@ def to_listing_dict(l: Listing, db: Session):
 
 
 def to_release_dict(r: Release, db: Session):
-    listings = []
-
+    # ✅ 최신 수집(=업데이트) 시각: listing들의 collected_at 중 가장 최근
     latest_collected_at: Optional[str] = None
     if r.listings:
         latest_collected_at = max(l.collected_at for l in r.listings).isoformat()
 
-    for l in r.listings:
-        listings.append(to_listing_dict(l, db))
+    # ✅ 정렬: PREORDER > ON_SALE > SOLD_OUT, 같은 상태면 최신(collected_at) 우선
+    STATUS_PRIORITY = {"PREORDER": 0, "ON_SALE": 1, "SOLD_OUT": 2}
+
+    sorted_listings = sorted(
+        r.listings,
+        key=lambda l: (
+            STATUS_PRIORITY.get(getattr(l, "status", None), 99),
+            -l.collected_at.timestamp(),
+        ),
+    )
+
+    listings = [to_listing_dict(l, db) for l in sorted_listings]
 
     return {
         "id": str(r.id),
@@ -123,7 +132,6 @@ def to_release_dict(r: Release, db: Session):
         "latestCollectedAt": latest_collected_at,
         "storesCount": len(listings),
         "listings": listings,
-        # ReleaseDto에 collectedAt이 있는 경우를 대비(없어도 프론트는 안전)
         "collectedAt": r.created_at.isoformat() if getattr(r, "created_at", None) else None,
     }
 
@@ -236,31 +244,42 @@ def update_listing(listing_id: str, payload: ListingUpdate, db: Session = Depend
     if not l:
         raise HTTPException(status_code=404, detail="Listing not found")
 
-    fields = payload.model_fields_set  # ✅ pydantic v2: 어떤 필드가 요청에 포함됐는지
+    fields = payload.model_fields_set
 
-    # status 업데이트(요청에 포함된 경우만)
+    changed = False  # ✅ 실제 변경 발생 여부
+
     if "status" in fields:
         if payload.status is None:
             raise HTTPException(status_code=400, detail="status cannot be null")
 
-        l.status = payload.status
+        if l.status != payload.status:
+            l.status = payload.status
+            changed = True
 
-        # 정책: 품절이면 가격은 무조건 null
         if payload.status == "SOLD_OUT":
-            l.price = None
+            if l.price is not None:
+                l.price = None
+                changed = True
 
-    # price 업데이트(요청에 포함된 경우만)
     if "price" in fields:
         # price: null -> 지우기
         if payload.price is None:
-            l.price = None
+            if l.price is not None:
+                l.price = None
+                changed = True
         else:
-            # 품절이면 price는 무시
             if l.status != "SOLD_OUT":
-                l.price = payload.price
+                if l.price != payload.price:
+                    l.price = payload.price
+                    changed = True
+
+    # ✅ “수집=업데이트” 정책: 변경이 있으면 collected_at을 최신으로 갱신
+    if changed:
+        l.collected_at = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(l)
+
     return to_listing_dict(l, db)
 
 
@@ -287,7 +306,6 @@ def get_stores(db: Session = Depends(get_db)):
 
     result = []
     for s in stores:
-        # ✅ 해당 store.slug를 참조하는 listing 개수
         cnt = db.query(Listing).filter(Listing.source_slug == s.slug).count()
 
         result.append(
