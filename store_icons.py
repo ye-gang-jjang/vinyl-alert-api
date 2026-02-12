@@ -6,7 +6,8 @@ STORE_ICON_MAP = {
     "예스24": "/store-icons/yes24.png",
     "알라딘": "/store-icons/aladin.png",
     
-    "인스타그램": "/store-icons/instagram.png"
+    "인스타그램": "/store-icons/instagram.png",
+    "MPMG MUSIC": "/store-icons/mpmg.png",
 }
 
 def get_store_icon_url(store_name: str):
