@@ -8,6 +8,8 @@ STORE_ICON_MAP = {
     
     "인스타그램": "/store-icons/instagram.png",
     "MPMG MUSIC": "/store-icons/mpmg.png",
+    "KTOWN4U": "/store-icons/ktown4u.png",
+    "핫트랙스(교보문고)": "/store-icons/hottracks.png",
 }
 
 def get_store_icon_url(store_name: str):
