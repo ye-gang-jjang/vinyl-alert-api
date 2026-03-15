@@ -136,6 +136,32 @@ def to_release_dict(r: Release, db: Session):
     }
 
 
+def to_release_summary_dict(r: Release, db: Session):
+    latest_collected_at: Optional[str] = None
+    if r.listings:
+        latest_collected_at = max(l.collected_at for l in r.listings).isoformat()
+
+    store_map = {}
+    if r.listings:
+        slugs = list({str(l.source_slug) for l in r.listings if l.source_slug is not None})
+        stores = db.query(Store).filter(Store.slug.in_(slugs)).all()
+        store_map = {store.slug: store.name for store in stores}
+    store_names = sorted(
+        {store_map.get(str(l.source_slug), str(l.source_slug)) for l in r.listings}
+    )
+
+    return {
+        "id": str(r.id),
+        "artistName": r.artist_name,
+        "albumTitle": r.album_title,
+        "coverImageUrl": r.cover_image_url,
+        "latestCollectedAt": latest_collected_at,
+        "storesCount": len(store_names),
+        "storeNames": store_names,
+        "collectedAt": r.created_at.isoformat() if getattr(r, "created_at", None) else None,
+    }
+
+
 # =========================
 # Routes
 # =========================
@@ -149,6 +175,12 @@ def health_check():
 def get_releases(db: Session = Depends(get_db)):
     releases = db.query(Release).order_by(Release.id.desc()).all()
     return [to_release_dict(r, db) for r in releases]
+
+
+@app.get("/release-summaries")
+def get_release_summaries(db: Session = Depends(get_db)):
+    releases = db.query(Release).order_by(Release.id.desc()).all()
+    return [to_release_summary_dict(r, db) for r in releases]
 
 
 @app.get("/releases/{release_id}")
