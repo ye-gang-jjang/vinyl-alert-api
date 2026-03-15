@@ -183,6 +183,17 @@ def get_release_summaries(db: Session = Depends(get_db)):
     return [to_release_summary_dict(r, db) for r in releases]
 
 
+@app.get("/artists/{artist_name}/release-summaries")
+def get_artist_release_summaries(artist_name: str, db: Session = Depends(get_db)):
+    releases = (
+        db.query(Release)
+        .filter(Release.artist_name == artist_name)
+        .order_by(Release.id.desc())
+        .all()
+    )
+    return [to_release_summary_dict(r, db) for r in releases]
+
+
 @app.get("/releases/{release_id}")
 def get_release_by_id(release_id: str, db: Session = Depends(get_db)):
     try:
