@@ -2,7 +2,7 @@
 # Imports
 # =========================
 import os
-from typing import Optional, Literal
+from typing import Optional, Literal, Any
 from datetime import datetime, timezone
 from fastapi import FastAPI, Depends, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -83,6 +83,16 @@ class StoreIn(BaseModel):
 # =========================
 # Response Serialization
 # =========================
+def serialize_dt(dt: Any) -> Optional[str]:
+    if dt is None or not isinstance(dt, datetime):
+        return None
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+
+    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def to_listing_dict(l: Listing, db: Session):
     store_name = ""
     store_icon = ""
@@ -97,7 +107,7 @@ def to_listing_dict(l: Listing, db: Session):
         "sourceName": store_name,
         "sourceProductTitle": l.source_product_title,
         "url": l.url,
-        "collectedAt": l.collected_at.isoformat() if l.collected_at else None,
+        "collectedAt": serialize_dt(l.collected_at),
         "imageUrl": store_icon,
         "latestCollectedAt": None,  # 프론트 DTO 형식 맞춤(현재 미사용)
         "price": l.price,
@@ -109,7 +119,7 @@ def to_release_dict(r: Release, db: Session):
     # ✅ 최신 수집(=업데이트) 시각: listing들의 collected_at 중 가장 최근
     latest_collected_at: Optional[str] = None
     if r.listings:
-        latest_collected_at = max(l.collected_at for l in r.listings).isoformat()
+        latest_collected_at = serialize_dt(max(l.collected_at for l in r.listings))
 
     # ✅ 정렬: PREORDER > ON_SALE > SOLD_OUT, 같은 상태면 최신(collected_at) 우선
     STATUS_PRIORITY = {"PREORDER": 0, "ON_SALE": 1, "SOLD_OUT": 2}
@@ -132,14 +142,14 @@ def to_release_dict(r: Release, db: Session):
         "latestCollectedAt": latest_collected_at,
         "storesCount": len(listings),
         "listings": listings,
-        "collectedAt": r.created_at.isoformat() if getattr(r, "created_at", None) else None,
+        "collectedAt": serialize_dt(getattr(r, "created_at", None)),
     }
 
 
 def to_release_summary_dict(r: Release, db: Session):
     latest_collected_at: Optional[str] = None
     if r.listings:
-        latest_collected_at = max(l.collected_at for l in r.listings).isoformat()
+        latest_collected_at = serialize_dt(max(l.collected_at for l in r.listings))
 
     store_map = {}
     if r.listings:
@@ -158,7 +168,7 @@ def to_release_summary_dict(r: Release, db: Session):
         "latestCollectedAt": latest_collected_at,
         "storesCount": len(store_names),
         "storeNames": store_names,
-        "collectedAt": r.created_at.isoformat() if getattr(r, "created_at", None) else None,
+        "collectedAt": serialize_dt(getattr(r, "created_at", None)),
     }
 
 
