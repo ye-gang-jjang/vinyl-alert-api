@@ -1,6 +1,5 @@
 import os
-from db import Base
-from models import Release, Listing  # 모델을 import해서 metadata에 등록
+from models import Base, Listing, Release, Store
 
 from logging.config import fileConfig
 

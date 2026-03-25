@@ -1,6 +1,8 @@
 import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from sqlalchemy.orm import sessionmaker
+
+from models.base import Base
 
 # ✅ 환경변수 기반 DB URL
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -27,7 +29,3 @@ SessionLocal = sessionmaker(
     autoflush=False,
     autocommit=False,
 )
-
-
-class Base(DeclarativeBase):
-    pass
