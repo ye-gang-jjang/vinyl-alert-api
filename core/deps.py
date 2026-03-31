@@ -1,4 +1,4 @@
-from db import SessionLocal
+from core.db import SessionLocal
 
 
 def get_db():
