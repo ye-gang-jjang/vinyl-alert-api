@@ -23,7 +23,7 @@ def get_releases(db: Session = Depends(get_db)):
 @router.get("/release-summaries", response_model=PaginatedReleaseSummariesOut)
 def get_release_summaries(
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=24, alias="pageSize", ge=1, le=100),
+    page_size: int = Query(default=18, alias="pageSize", ge=1, le=100),
     artist: Optional[str] = None,
     store: Optional[str] = None,
     sort: str = Query(default="default"),
@@ -43,7 +43,7 @@ def get_release_summaries(
 def get_artist_release_summaries(
     artist_name: str,
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=24, alias="pageSize", ge=1, le=100),
+    page_size: int = Query(default=18, alias="pageSize", ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     return release_service.get_artist_release_summaries(

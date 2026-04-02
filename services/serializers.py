@@ -4,6 +4,7 @@ from typing import Any, Optional
 from sqlalchemy.orm import Session
 
 from repositories import stores as store_repository
+from models import Store
 from schemas.listings import ListingOut
 from schemas.releases import ReleaseOut, ReleaseSummaryOut
 from schemas.stores import StoreRefOut
@@ -98,6 +99,39 @@ def to_release_summary_dict(release, db: Session):
         store_refs.extend(
             [StoreRefOut(slug=slug, name=slug, iconUrl="") for slug in missing_slugs]
         )
+
+    return ReleaseSummaryOut(
+        id=str(release.id),
+        artistName=release.artist_name,
+        albumTitle=release.album_title,
+        coverImageUrl=release.cover_image_url,
+        latestCollectedAt=latest_collected_at,
+        storesCount=len(store_refs),
+        stores=store_refs,
+        collectedAt=serialize_dt(getattr(release, "created_at", None)),
+    )
+
+
+def to_release_summary_with_store_map(release, store_map: dict[str, Store]):
+    latest_collected_at = None
+    if release.listings:
+        latest_collected_at = serialize_dt(max(listing.collected_at for listing in release.listings))
+
+    slugs = sorted({str(listing.source_slug) for listing in release.listings if listing.source_slug is not None})
+    store_refs = []
+
+    for slug in slugs:
+        store = store_map.get(slug)
+        if store:
+            store_refs.append(
+                StoreRefOut(
+                    slug=str(store.slug),
+                    name=store.name,
+                    iconUrl=store.icon_url,
+                )
+            )
+        else:
+            store_refs.append(StoreRefOut(slug=slug, name=slug, iconUrl=""))
 
     return ReleaseSummaryOut(
         id=str(release.id),
