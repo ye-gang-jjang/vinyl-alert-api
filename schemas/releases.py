@@ -32,3 +32,13 @@ class ReleaseSummaryOut(BaseModel):
     storesCount: int
     stores: list[StoreRefOut]
     collectedAt: Optional[str] = None
+
+
+class PaginatedReleaseSummariesOut(BaseModel):
+    items: list[ReleaseSummaryOut]
+    page: int
+    pageSize: int
+    total: int
+    totalPages: int
+    artists: list[str]
+    stores: list[StoreRefOut]
