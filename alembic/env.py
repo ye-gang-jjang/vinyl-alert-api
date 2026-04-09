@@ -1,5 +1,5 @@
 import os
-from models import Base, Listing, Release, Store
+from models import Base, Listing, PendingCandidate, Release, Store
 
 from logging.config import fileConfig
 

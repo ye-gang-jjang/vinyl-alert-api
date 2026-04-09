@@ -9,6 +9,14 @@ def get_listing_by_id(db: Session, listing_id: int):
     return db.query(Listing).filter(Listing.id == listing_id).first()
 
 
+def get_listing_by_store_and_url(db: Session, source_slug: str, url: str):
+    return (
+        db.query(Listing)
+        .filter(Listing.source_slug == source_slug, Listing.url == url)
+        .first()
+    )
+
+
 def create_listing(
     db: Session,
     release_id: int,

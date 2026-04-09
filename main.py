@@ -6,7 +6,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import health, listings, releases, stores
+from routers import health, listings, pending_candidates, releases, stores
 
 
 # =========================
@@ -38,3 +38,4 @@ app.include_router(health.router)
 app.include_router(releases.router)
 app.include_router(listings.router)
 app.include_router(stores.router)
+app.include_router(pending_candidates.router)
