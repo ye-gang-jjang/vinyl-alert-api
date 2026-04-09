@@ -142,7 +142,6 @@ def approve_pending_candidate(db: Session, candidate_id: str, payload):
         source_product_title=candidate.source_product_title,
         url=candidate.url,
         price=payload.price,
-        status=payload.status or "ON_SALE",
     )
 
     pending_repository.update_pending_candidate_status(

@@ -24,7 +24,6 @@ def create_listing(
     source_product_title: str,
     url: str,
     price: Optional[int],
-    status: str,
 ):
     listing = Listing(
         release_id=release_id,
@@ -32,7 +31,6 @@ def create_listing(
         source_product_title=source_product_title,
         url=url,
         price=price,
-        status=status,
     )
     db.add(listing)
     db.commit()

@@ -1,9 +1,6 @@
-from typing import Literal, Optional
+from typing import Optional
 
 from pydantic import BaseModel
-
-
-ListingStatus = Literal["ON_SALE", "PREORDER", "SOLD_OUT"]
 
 
 class ListingIn(BaseModel):
@@ -11,12 +8,10 @@ class ListingIn(BaseModel):
     sourceProductTitle: str
     url: str
     price: Optional[int] = None
-    status: ListingStatus = "ON_SALE"
 
 
 class ListingUpdate(BaseModel):
     price: Optional[int] = None
-    status: Optional[ListingStatus] = None
 
 
 class ListingOut(BaseModel):
@@ -28,4 +23,3 @@ class ListingOut(BaseModel):
     imageUrl: str
     latestCollectedAt: Optional[str] = None
     price: Optional[int] = None
-    status: str

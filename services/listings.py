@@ -30,7 +30,6 @@ def add_listing(db: Session, release_id: str, payload):
         source_product_title=payload.sourceProductTitle,
         url=payload.url,
         price=payload.price,
-        status=payload.status,
     )
     db.refresh(release)
 
@@ -50,24 +49,12 @@ def update_listing(db: Session, listing_id: str, payload):
     fields = payload.model_fields_set
     changed = False
 
-    if "status" in fields:
-        if payload.status is None:
-            raise HTTPException(status_code=400, detail="status cannot be null")
-
-        if listing.status != payload.status:
-            listing.status = payload.status
-            changed = True
-
-        if payload.status == "SOLD_OUT" and listing.price is not None:
-            listing.price = None
-            changed = True
-
     if "price" in fields:
         if payload.price is None:
             if listing.price is not None:
                 listing.price = None
                 changed = True
-        elif listing.status != "SOLD_OUT" and listing.price != payload.price:
+        elif listing.price != payload.price:
             listing.price = payload.price
             changed = True
 

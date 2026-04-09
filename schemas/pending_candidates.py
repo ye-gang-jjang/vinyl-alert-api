@@ -20,7 +20,6 @@ class ApprovePendingCandidateIn(BaseModel):
     albumTitle: Optional[str] = None
     coverImageUrl: Optional[str] = None
     price: Optional[int] = None
-    status: Optional[str] = "ON_SALE"
 
 
 class RejectPendingCandidateIn(BaseModel):

@@ -38,7 +38,6 @@ def to_listing_dict(listing, db: Session):
         imageUrl=store_icon,
         latestCollectedAt=None,
         price=listing.price,
-        status=listing.status,
     )
 
 
@@ -47,13 +46,9 @@ def to_release_dict(release, db: Session):
     if release.listings:
         latest_collected_at = serialize_dt(max(listing.collected_at for listing in release.listings))
 
-    status_priority: dict[str, int] = {"PREORDER": 0, "ON_SALE": 1, "SOLD_OUT": 2}
     sorted_listings = sorted(
         release.listings,
-        key=lambda listing: (
-            status_priority.get(str(getattr(listing, "status", "")), 99),
-            -listing.collected_at.timestamp(),
-        ),
+        key=lambda listing: -listing.collected_at.timestamp(),
     )
 
     return ReleaseOut(
