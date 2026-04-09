@@ -25,7 +25,9 @@ def get_pending_candidate_by_url(db: Session, url: str):
 def create_pending_candidate(
     db: Session,
     artist_name: str,
+    normalized_artist_name: str,
     album_title: str,
+    normalized_album_title: str,
     source_slug: str,
     source_product_title: str,
     url: str,
@@ -33,7 +35,9 @@ def create_pending_candidate(
 ):
     candidate = PendingCandidate(
         artist_name=artist_name,
+        normalized_artist_name=normalized_artist_name,
         album_title=album_title,
+        normalized_album_title=normalized_album_title,
         source_slug=source_slug,
         source_product_title=source_product_title,
         url=url,
@@ -57,6 +61,17 @@ def update_pending_candidate_status(
     candidate.reviewed_at = datetime.now(timezone.utc)
     if note is not None:
         candidate.note = note
+    db.commit()
+    db.refresh(candidate)
+    return candidate
+
+
+def set_pending_candidate_match(
+    db: Session,
+    candidate: PendingCandidate,
+    matched_release_id: Optional[int],
+):
+    candidate.matched_release_id = matched_release_id
     db.commit()
     db.refresh(candidate)
     return candidate

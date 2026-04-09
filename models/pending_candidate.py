@@ -13,7 +13,9 @@ class PendingCandidate(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     artist_name: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    normalized_artist_name: Mapped[str] = mapped_column(String, nullable=False, index=True)
     album_title: Mapped[str] = mapped_column(String, nullable=False)
+    normalized_album_title: Mapped[str] = mapped_column(String, nullable=False, index=True)
     source_slug: Mapped[str] = mapped_column(String, nullable=False, index=True)
     source_product_title: Mapped[str] = mapped_column(String, nullable=False)
     url: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
