@@ -31,6 +31,7 @@ def create_pending_candidate(
     source_slug: str,
     source_product_title: str,
     url: str,
+    price: Optional[int] = None,
     note: Optional[str] = None,
 ):
     candidate = PendingCandidate(
@@ -41,6 +42,7 @@ def create_pending_candidate(
         source_slug=source_slug,
         source_product_title=source_product_title,
         url=url,
+        price=price,
         note=note,
     )
     db.add(candidate)

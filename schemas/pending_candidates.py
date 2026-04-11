@@ -11,6 +11,7 @@ class PendingCandidateIn(BaseModel):
     storeSlug: str
     sourceProductTitle: str
     url: str
+    price: Optional[int] = None
     note: Optional[str] = None
 
 
@@ -32,6 +33,7 @@ class PendingCandidateOut(BaseModel):
     albumTitle: str
     sourceProductTitle: str
     url: str
+    price: Optional[int] = None
     status: str
     note: Optional[str] = None
     createdAt: Optional[str] = None

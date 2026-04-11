@@ -19,6 +19,7 @@ class PendingCandidate(Base):
     source_slug: Mapped[str] = mapped_column(String, nullable=False, index=True)
     source_product_title: Mapped[str] = mapped_column(String, nullable=False)
     url: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    price: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDING", index=True)
     note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -37,6 +37,7 @@ def _to_pending_candidate_out(candidate, store):
         albumTitle=candidate.album_title,
         sourceProductTitle=candidate.source_product_title,
         url=candidate.url,
+        price=candidate.price,
         status=candidate.status,
         note=candidate.note,
         createdAt=serialize_dt(candidate.created_at),
@@ -82,6 +83,7 @@ def create_pending_candidate(db: Session, payload):
         source_slug=payload.storeSlug,
         source_product_title=payload.sourceProductTitle,
         url=payload.url,
+        price=payload.price,
         note=payload.note,
     )
 
@@ -141,7 +143,7 @@ def approve_pending_candidate(db: Session, candidate_id: str, payload):
         source_slug=candidate.source_slug,
         source_product_title=candidate.source_product_title,
         url=candidate.url,
-        price=payload.price,
+        price=payload.price if payload.price is not None else candidate.price,
     )
 
     pending_repository.update_pending_candidate_status(
