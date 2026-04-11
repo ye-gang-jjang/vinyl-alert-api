@@ -32,6 +32,7 @@ def create_pending_candidate(
     source_product_title: str,
     url: str,
     price: Optional[int] = None,
+    cover_image_url: Optional[str] = None,
     note: Optional[str] = None,
 ):
     candidate = PendingCandidate(
@@ -43,6 +44,7 @@ def create_pending_candidate(
         source_product_title=source_product_title,
         url=url,
         price=price,
+        cover_image_url=cover_image_url,
         note=note,
     )
     db.add(candidate)

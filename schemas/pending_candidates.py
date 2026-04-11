@@ -12,6 +12,7 @@ class PendingCandidateIn(BaseModel):
     sourceProductTitle: str
     url: str
     price: Optional[int] = None
+    coverImageUrl: Optional[str] = None
     note: Optional[str] = None
 
 
@@ -34,6 +35,7 @@ class PendingCandidateOut(BaseModel):
     sourceProductTitle: str
     url: str
     price: Optional[int] = None
+    coverImageUrl: Optional[str] = None
     status: str
     note: Optional[str] = None
     createdAt: Optional[str] = None
