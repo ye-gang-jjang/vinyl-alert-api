@@ -17,6 +17,14 @@ def get_listing_by_store_and_url(db: Session, source_slug: str, url: str):
     )
 
 
+def get_listing_by_release_and_store(db: Session, release_id: int, source_slug: str):
+    return (
+        db.query(Listing)
+        .filter(Listing.release_id == release_id, Listing.source_slug == source_slug)
+        .first()
+    )
+
+
 def create_listing(
     db: Session,
     release_id: int,

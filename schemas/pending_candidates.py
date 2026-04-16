@@ -28,6 +28,15 @@ class RejectPendingCandidateIn(BaseModel):
     note: Optional[str] = None
 
 
+class BulkRejectPendingCandidatesIn(BaseModel):
+    candidateIds: list[str]
+    note: Optional[str] = None
+
+
+class PendingCandidateBulkActionOut(BaseModel):
+    updatedCount: int
+
+
 class PendingCandidateOut(BaseModel):
     id: str
     artistName: str
