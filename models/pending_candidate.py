@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -22,7 +22,6 @@ class PendingCandidate(Base):
     price: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     cover_image_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDING", index=True)
-    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     matched_release_id: Mapped[Optional[int]] = mapped_column(
         Integer,

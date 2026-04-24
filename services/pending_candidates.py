@@ -42,7 +42,6 @@ def _to_pending_candidate_out(candidate, store):
         price=candidate.price,
         coverImageUrl=candidate.cover_image_url,
         status=candidate.status,
-        note=candidate.note,
         createdAt=serialize_dt(candidate.created_at),
         reviewedAt=serialize_dt(candidate.reviewed_at),
         matchedReleaseId=str(candidate.matched_release_id) if candidate.matched_release_id else None,
@@ -137,7 +136,6 @@ def create_pending_candidate(db: Session, payload):
         url=payload.url,
         price=payload.price,
         cover_image_url=payload.coverImageUrl,
-        note=payload.note,
     )
 
     if exact_release:
@@ -160,7 +158,6 @@ def _approve_pending_candidate(db: Session, cid: int, payload):
             candidate,
             status="APPROVED",
             matched_release_id=listing.release_id,
-            note="이미 등록된 listing URL과 중복되어 승인 처리됨",
         )
         return _to_pending_candidate_out(candidate, store_repository.get_store_by_slug(db, candidate.source_slug))
 
@@ -196,7 +193,6 @@ def _approve_pending_candidate(db: Session, cid: int, payload):
             candidate,
             status="APPROVED",
             matched_release_id=release.id,
-            note="이미 같은 앨범/스토어 listing이 존재해 승인 처리됨",
         )
         return _to_pending_candidate_out(candidate, store_repository.get_store_by_slug(db, candidate.source_slug))
 
@@ -241,12 +237,11 @@ def reject_pending_candidate(db: Session, candidate_id: str, payload):
         db,
         candidate,
         status="REJECTED",
-        note=payload.note,
     )
     return _to_pending_candidate_out(candidate, store_repository.get_store_by_slug(db, candidate.source_slug))
 
 
-def bulk_reject_pending_candidates(db: Session, candidate_ids: List[str], note: Optional[str] = None):
+def bulk_reject_pending_candidates(db: Session, candidate_ids: List[str]):
     updated_count = 0
 
     for candidate_id in candidate_ids:
@@ -263,7 +258,6 @@ def bulk_reject_pending_candidates(db: Session, candidate_ids: List[str], note: 
             db,
             candidate,
             status="REJECTED",
-            note=note,
         )
         updated_count += 1
 
@@ -288,3 +282,20 @@ def bulk_approve_pending_candidates(db: Session, items):
             raise
 
     return {"updatedCount": updated_count}
+
+
+def reopen_pending_candidate(db: Session, candidate_id: str):
+    try:
+        cid = int(candidate_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid pending candidate id")
+
+    candidate = pending_repository.get_pending_candidate_by_id(db, cid)
+    if not candidate:
+        raise HTTPException(status_code=404, detail="pending candidate not found")
+
+    if candidate.status != "REJECTED":
+        raise HTTPException(status_code=400, detail="candidate is not rejected")
+
+    reopened_candidate = pending_repository.reopen_pending_candidate(db, candidate)
+    return _to_pending_candidate_out(reopened_candidate, store_repository.get_store_by_slug(db, reopened_candidate.source_slug))

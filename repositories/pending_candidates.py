@@ -71,7 +71,6 @@ def create_pending_candidate(
     url: str,
     price: Optional[int] = None,
     cover_image_url: Optional[str] = None,
-    note: Optional[str] = None,
 ):
     candidate = PendingCandidate(
         artist_name=artist_name,
@@ -83,7 +82,6 @@ def create_pending_candidate(
         url=url,
         price=price,
         cover_image_url=cover_image_url,
-        note=note,
     )
     db.add(candidate)
     db.commit()
@@ -96,13 +94,18 @@ def update_pending_candidate_status(
     candidate: PendingCandidate,
     status: str,
     matched_release_id: Optional[int] = None,
-    note: Optional[str] = None,
 ):
     candidate.status = status
     candidate.matched_release_id = matched_release_id
     candidate.reviewed_at = datetime.now(timezone.utc)
-    if note is not None:
-        candidate.note = note
+    db.commit()
+    db.refresh(candidate)
+    return candidate
+
+
+def reopen_pending_candidate(db: Session, candidate: PendingCandidate):
+    candidate.status = "PENDING"
+    candidate.reviewed_at = None
     db.commit()
     db.refresh(candidate)
     return candidate

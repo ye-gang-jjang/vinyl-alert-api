@@ -13,7 +13,6 @@ class PendingCandidateIn(BaseModel):
     url: str
     price: Optional[int] = None
     coverImageUrl: Optional[str] = None
-    note: Optional[str] = None
 
 
 class ApprovePendingCandidateIn(BaseModel):
@@ -25,12 +24,11 @@ class ApprovePendingCandidateIn(BaseModel):
 
 
 class RejectPendingCandidateIn(BaseModel):
-    note: Optional[str] = None
+    pass
 
 
 class BulkRejectPendingCandidatesIn(BaseModel):
     candidateIds: list[str]
-    note: Optional[str] = None
 
 
 class BulkApprovePendingCandidateItemIn(BaseModel):
@@ -40,6 +38,10 @@ class BulkApprovePendingCandidateItemIn(BaseModel):
 
 class BulkApprovePendingCandidatesIn(BaseModel):
     items: list[BulkApprovePendingCandidateItemIn]
+
+
+class ReopenPendingCandidateIn(BaseModel):
+    pass
 
 
 class PendingCandidateBulkActionOut(BaseModel):
@@ -55,7 +57,6 @@ class PendingCandidateOut(BaseModel):
     price: Optional[int] = None
     coverImageUrl: Optional[str] = None
     status: str
-    note: Optional[str] = None
     createdAt: Optional[str] = None
     reviewedAt: Optional[str] = None
     matchedReleaseId: Optional[str] = None

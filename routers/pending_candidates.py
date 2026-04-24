@@ -11,6 +11,7 @@ from schemas.pending_candidates import (
     PendingCandidateBulkActionOut,
     PendingCandidateIn,
     PendingCandidateOut,
+    ReopenPendingCandidateIn,
     RejectPendingCandidateIn,
 )
 from services import pending_candidates as pending_service
@@ -39,7 +40,7 @@ def bulk_reject_pending_candidates(
     payload: BulkRejectPendingCandidatesIn,
     db: Session = Depends(get_db),
 ):
-    return pending_service.bulk_reject_pending_candidates(db, payload.candidateIds, payload.note)
+    return pending_service.bulk_reject_pending_candidates(db, payload.candidateIds)
 
 
 @router.post("/pending-candidates/bulk/approve", response_model=PendingCandidateBulkActionOut)
@@ -66,3 +67,12 @@ def reject_pending_candidate(
     db: Session = Depends(get_db),
 ):
     return pending_service.reject_pending_candidate(db, candidate_id, payload)
+
+
+@router.post("/pending-candidates/{candidate_id}/reopen", response_model=PendingCandidateOut)
+def reopen_pending_candidate(
+    candidate_id: str,
+    payload: ReopenPendingCandidateIn,
+    db: Session = Depends(get_db),
+):
+    return pending_service.reopen_pending_candidate(db, candidate_id)
