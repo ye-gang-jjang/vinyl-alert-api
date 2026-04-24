@@ -146,6 +146,23 @@ def create_release(db: Session, payload):
     return to_release_dict(release, db)
 
 
+def record_release_view(db: Session, release_id: str):
+    try:
+        rid = int(release_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid release id")
+
+    release = release_repository.get_release_by_id(db, rid)
+    if not release:
+        raise HTTPException(status_code=404, detail="Release not found")
+
+    release = release_repository.increment_release_view_count(db, release)
+    return {
+        "id": str(release.id),
+        "viewCount": release.view_count,
+    }
+
+
 def delete_release(db: Session, release_id: str):
     try:
         rid = int(release_id)

@@ -88,6 +88,14 @@ def create_release(
     return release
 
 
+def increment_release_view_count(db: Session, release: Release):
+    release.view_count += 1
+    db.add(release)
+    db.commit()
+    db.refresh(release)
+    return release
+
+
 def delete_release(db: Session, release: Release):
     db.delete(release)
     db.commit()

@@ -8,6 +8,7 @@ from schemas.releases import (
     PaginatedReleaseSummariesOut,
     ReleaseIn,
     ReleaseOut,
+    ReleaseViewCountOut,
 )
 from services import releases as release_service
 
@@ -62,6 +63,11 @@ def get_release_by_id(release_id: str, db: Session = Depends(get_db)):
 @router.post("/releases", response_model=ReleaseOut)
 def create_release(payload: ReleaseIn, db: Session = Depends(get_db)):
     return release_service.create_release(db, payload)
+
+
+@router.post("/releases/{release_id}/view", response_model=ReleaseViewCountOut)
+def record_release_view(release_id: str, db: Session = Depends(get_db)):
+    return release_service.record_release_view(db, release_id)
 
 
 @router.delete("/releases/{release_id}", status_code=204)
