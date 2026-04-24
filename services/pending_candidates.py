@@ -145,12 +145,7 @@ def create_pending_candidate(db: Session, payload):
     return _to_pending_candidate_out(candidate, store)
 
 
-def approve_pending_candidate(db: Session, candidate_id: str, payload):
-    try:
-        cid = int(candidate_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="invalid pending candidate id")
-
+def _approve_pending_candidate(db: Session, cid: int, payload):
     candidate = pending_repository.get_pending_candidate_by_id(db, cid)
     if not candidate:
         raise HTTPException(status_code=404, detail="pending candidate not found")
@@ -223,6 +218,15 @@ def approve_pending_candidate(db: Session, candidate_id: str, payload):
     return _to_pending_candidate_out(candidate, store_repository.get_store_by_slug(db, candidate.source_slug))
 
 
+def approve_pending_candidate(db: Session, candidate_id: str, payload):
+    try:
+        cid = int(candidate_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid pending candidate id")
+
+    return _approve_pending_candidate(db, cid, payload)
+
+
 def reject_pending_candidate(db: Session, candidate_id: str, payload):
     try:
         cid = int(candidate_id)
@@ -262,5 +266,25 @@ def bulk_reject_pending_candidates(db: Session, candidate_ids: List[str], note: 
             note=note,
         )
         updated_count += 1
+
+    return {"updatedCount": updated_count}
+
+
+def bulk_approve_pending_candidates(db: Session, items):
+    updated_count = 0
+
+    for item in items:
+        try:
+            cid = int(item.candidateId)
+        except ValueError:
+            continue
+
+        try:
+            _approve_pending_candidate(db, cid, item)
+            updated_count += 1
+        except HTTPException as error:
+            if error.status_code in {400, 404}:
+                continue
+            raise
 
     return {"updatedCount": updated_count}

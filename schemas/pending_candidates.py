@@ -33,6 +33,15 @@ class BulkRejectPendingCandidatesIn(BaseModel):
     note: Optional[str] = None
 
 
+class BulkApprovePendingCandidateItemIn(BaseModel):
+    candidateId: str
+    releaseId: Optional[str] = None
+
+
+class BulkApprovePendingCandidatesIn(BaseModel):
+    items: list[BulkApprovePendingCandidateItemIn]
+
+
 class PendingCandidateBulkActionOut(BaseModel):
     updatedCount: int
 

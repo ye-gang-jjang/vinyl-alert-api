@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from core.deps import get_db
 from schemas.pending_candidates import (
     ApprovePendingCandidateIn,
+    BulkApprovePendingCandidatesIn,
     BulkRejectPendingCandidatesIn,
     PendingCandidateBulkActionOut,
     PendingCandidateIn,
@@ -39,6 +40,14 @@ def bulk_reject_pending_candidates(
     db: Session = Depends(get_db),
 ):
     return pending_service.bulk_reject_pending_candidates(db, payload.candidateIds, payload.note)
+
+
+@router.post("/pending-candidates/bulk/approve", response_model=PendingCandidateBulkActionOut)
+def bulk_approve_pending_candidates(
+    payload: BulkApprovePendingCandidatesIn,
+    db: Session = Depends(get_db),
+):
+    return pending_service.bulk_approve_pending_candidates(db, payload.items)
 
 
 @router.post("/pending-candidates/{candidate_id}/approve", response_model=PendingCandidateOut)
