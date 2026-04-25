@@ -20,11 +20,10 @@ def serialize_dt(dt: Any) -> Optional[str]:
     return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def to_listing_dict(listing, db: Session):
+def _listing_out_from_store(listing, store: Optional[Store]):
     store_name = ""
     store_icon = ""
 
-    store = store_repository.get_store_by_slug(db, listing.source_slug)
     if store:
         store_name = store.name
         store_icon = store.icon_url
@@ -41,7 +40,23 @@ def to_listing_dict(listing, db: Session):
     )
 
 
+def to_listing_dict(listing, db: Session):
+    store = store_repository.get_store_by_slug(db, listing.source_slug)
+    return _listing_out_from_store(listing, store)
+
+
+def to_listing_dict_with_store_map(listing, store_map: dict[str, Store]):
+    return _listing_out_from_store(listing, store_map.get(str(listing.source_slug)))
+
+
 def to_release_dict(release, db: Session):
+    slugs = [str(listing.source_slug) for listing in release.listings if listing.source_slug is not None]
+    stores = store_repository.get_stores_by_slugs(db, slugs)
+    store_map = {str(store.slug): store for store in stores}
+    return to_release_dict_with_store_map(release, store_map)
+
+
+def to_release_dict_with_store_map(release, store_map: dict[str, Store]):
     latest_collected_at = None
     if release.listings:
         latest_collected_at = serialize_dt(max(listing.collected_at for listing in release.listings))
@@ -59,7 +74,7 @@ def to_release_dict(release, db: Session):
         viewCount=release.view_count,
         latestCollectedAt=latest_collected_at,
         storesCount=len(sorted_listings),
-        listings=[to_listing_dict(listing, db) for listing in sorted_listings],
+        listings=[to_listing_dict_with_store_map(listing, store_map) for listing in sorted_listings],
         collectedAt=serialize_dt(getattr(release, "created_at", None)),
     )
 

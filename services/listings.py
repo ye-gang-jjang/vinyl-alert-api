@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from repositories import listings as listing_repository
 from repositories import releases as release_repository
 from repositories import stores as store_repository
-from services.serializers import to_listing_dict, to_release_dict
+from services.serializers import to_listing_dict_with_store_map, to_release_dict_with_store_map
 
 
 def add_listing(db: Session, release_id: str, payload):
@@ -32,8 +32,11 @@ def add_listing(db: Session, release_id: str, payload):
         price=payload.price,
     )
     db.refresh(release)
+    source_slugs = [str(item.source_slug) for item in release.listings if item.source_slug is not None]
+    stores = store_repository.get_stores_by_slugs(db, source_slugs)
+    store_map = {str(item.slug): item for item in stores}
 
-    return to_release_dict(release, db)
+    return to_release_dict_with_store_map(release, store_map)
 
 
 def update_listing(db: Session, listing_id: str, payload):
@@ -63,8 +66,10 @@ def update_listing(db: Session, listing_id: str, payload):
 
     db.commit()
     db.refresh(listing)
+    store = store_repository.get_store_by_slug(db, listing.source_slug)
+    store_map = {str(store.slug): store} if store else {}
 
-    return to_listing_dict(listing, db)
+    return to_listing_dict_with_store_map(listing, store_map)
 
 
 def delete_listing(db: Session, listing_id: str):
