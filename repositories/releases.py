@@ -76,6 +76,8 @@ def create_release(
     artist_name: str,
     album_title: str,
     cover_image_url: Optional[str],
+    *,
+    commit: bool = True,
 ):
     release = Release(
         artist_name=artist_name,
@@ -83,8 +85,11 @@ def create_release(
         cover_image_url=cover_image_url,
     )
     db.add(release)
-    db.commit()
-    db.refresh(release)
+    if commit:
+        db.commit()
+        db.refresh(release)
+    else:
+        db.flush()
     return release
 
 

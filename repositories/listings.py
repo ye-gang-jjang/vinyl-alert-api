@@ -32,6 +32,8 @@ def create_listing(
     source_product_title: str,
     url: str,
     price: Optional[int],
+    *,
+    commit: bool = True,
 ):
     listing = Listing(
         release_id=release_id,
@@ -41,8 +43,11 @@ def create_listing(
         price=price,
     )
     db.add(listing)
-    db.commit()
-    db.refresh(listing)
+    if commit:
+        db.commit()
+        db.refresh(listing)
+    else:
+        db.flush()
     return listing
 
 

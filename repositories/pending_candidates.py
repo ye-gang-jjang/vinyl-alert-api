@@ -71,6 +71,8 @@ def create_pending_candidate(
     url: str,
     price: Optional[int] = None,
     cover_image_url: Optional[str] = None,
+    *,
+    commit: bool = True,
 ):
     candidate = PendingCandidate(
         artist_name=artist_name,
@@ -84,8 +86,11 @@ def create_pending_candidate(
         cover_image_url=cover_image_url,
     )
     db.add(candidate)
-    db.commit()
-    db.refresh(candidate)
+    if commit:
+        db.commit()
+        db.refresh(candidate)
+    else:
+        db.flush()
     return candidate
 
 
@@ -94,20 +99,28 @@ def update_pending_candidate_status(
     candidate: PendingCandidate,
     status: str,
     matched_release_id: Optional[int] = None,
+    *,
+    commit: bool = True,
 ):
     candidate.status = status
     candidate.matched_release_id = matched_release_id
     candidate.reviewed_at = datetime.now(timezone.utc)
-    db.commit()
-    db.refresh(candidate)
+    if commit:
+        db.commit()
+        db.refresh(candidate)
+    else:
+        db.flush()
     return candidate
 
 
-def reopen_pending_candidate(db: Session, candidate: PendingCandidate):
+def reopen_pending_candidate(db: Session, candidate: PendingCandidate, *, commit: bool = True):
     candidate.status = "PENDING"
     candidate.reviewed_at = None
-    db.commit()
-    db.refresh(candidate)
+    if commit:
+        db.commit()
+        db.refresh(candidate)
+    else:
+        db.flush()
     return candidate
 
 
@@ -123,6 +136,7 @@ def refresh_pending_candidate(
     url: str,
     price: Optional[int] = None,
     cover_image_url: Optional[str] = None,
+    commit: bool = True,
 ):
     candidate.artist_name = artist_name
     candidate.normalized_artist_name = normalized_artist_name
@@ -132,8 +146,11 @@ def refresh_pending_candidate(
     candidate.url = url
     candidate.price = price
     candidate.cover_image_url = cover_image_url
-    db.commit()
-    db.refresh(candidate)
+    if commit:
+        db.commit()
+        db.refresh(candidate)
+    else:
+        db.flush()
     return candidate
 
 
@@ -141,8 +158,13 @@ def set_pending_candidate_match(
     db: Session,
     candidate: PendingCandidate,
     matched_release_id: Optional[int],
+    *,
+    commit: bool = True,
 ):
     candidate.matched_release_id = matched_release_id
-    db.commit()
-    db.refresh(candidate)
+    if commit:
+        db.commit()
+        db.refresh(candidate)
+    else:
+        db.flush()
     return candidate

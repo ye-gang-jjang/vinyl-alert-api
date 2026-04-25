@@ -71,12 +71,15 @@ def get_pending_candidates(
 def create_pending_candidate(db: Session, payload):
     normalized_artist_name = normalize_release_text(payload.artistName)
     normalized_album_title = normalize_release_text(payload.albumTitle)
+    store = store_repository.get_store_by_slug(db, payload.storeSlug)
+    if not store:
+        raise HTTPException(status_code=400, detail="존재하지 않는 스토어입니다.")
 
     existing_candidate = pending_repository.get_pending_candidate_by_url(db, payload.url)
     if existing_candidate:
         return _to_pending_candidate_out(
             existing_candidate,
-            store_repository.get_store_by_slug(db, existing_candidate.source_slug),
+            store if existing_candidate.source_slug == store.slug else store_repository.get_store_by_slug(db, existing_candidate.source_slug),
         )
 
     existing_listing = listing_repository.get_listing_by_store_and_url(db, payload.storeSlug, payload.url)
@@ -100,53 +103,72 @@ def create_pending_candidate(db: Session, payload):
         normalized_album_title=normalized_album_title,
     )
     if existing_identity_candidate:
-        refreshed_candidate = pending_repository.refresh_pending_candidate(
+        try:
+            refreshed_candidate = pending_repository.refresh_pending_candidate(
+                db,
+                existing_identity_candidate,
+                artist_name=payload.artistName,
+                normalized_artist_name=normalized_artist_name,
+                album_title=payload.albumTitle,
+                normalized_album_title=normalized_album_title,
+                source_product_title=payload.sourceProductTitle,
+                url=payload.url,
+                price=payload.price,
+                cover_image_url=payload.coverImageUrl,
+                commit=False,
+            )
+            if exact_release and refreshed_candidate.matched_release_id != exact_release.id:
+                refreshed_candidate = pending_repository.set_pending_candidate_match(
+                    db,
+                    refreshed_candidate,
+                    exact_release.id,
+                    commit=False,
+                )
+            if refreshed_candidate is None:
+                raise HTTPException(status_code=500, detail="pending candidate refresh failed")
+            db.commit()
+            db.refresh(refreshed_candidate)
+            return _to_pending_candidate_out(refreshed_candidate, store)
+        except Exception:
+            db.rollback()
+            raise
+
+    try:
+        candidate = pending_repository.create_pending_candidate(
             db,
-            existing_identity_candidate,
             artist_name=payload.artistName,
             normalized_artist_name=normalized_artist_name,
             album_title=payload.albumTitle,
             normalized_album_title=normalized_album_title,
+            source_slug=payload.storeSlug,
             source_product_title=payload.sourceProductTitle,
             url=payload.url,
             price=payload.price,
             cover_image_url=payload.coverImageUrl,
-        )
-        if exact_release and refreshed_candidate.matched_release_id != exact_release.id:
-            refreshed_candidate = pending_repository.set_pending_candidate_match(db, refreshed_candidate, exact_release.id)
-        if refreshed_candidate is None:
-            raise HTTPException(status_code=500, detail="pending candidate refresh failed")
-        return _to_pending_candidate_out(
-            refreshed_candidate,
-            store_repository.get_store_by_slug(db, refreshed_candidate.source_slug),
+            commit=False,
         )
 
-    store = store_repository.get_store_by_slug(db, payload.storeSlug)
-    if not store:
-        raise HTTPException(status_code=400, detail="존재하지 않는 스토어입니다.")
-
-    candidate = pending_repository.create_pending_candidate(
-        db,
-        artist_name=payload.artistName,
-        normalized_artist_name=normalized_artist_name,
-        album_title=payload.albumTitle,
-        normalized_album_title=normalized_album_title,
-        source_slug=payload.storeSlug,
-        source_product_title=payload.sourceProductTitle,
-        url=payload.url,
-        price=payload.price,
-        cover_image_url=payload.coverImageUrl,
-    )
-
-    if exact_release:
-        pending_repository.set_pending_candidate_match(db, candidate, exact_release.id)
-    return _to_pending_candidate_out(candidate, store)
+        if exact_release:
+            pending_repository.set_pending_candidate_match(
+                db,
+                candidate,
+                exact_release.id,
+                commit=False,
+            )
+        db.commit()
+        db.refresh(candidate)
+        return _to_pending_candidate_out(candidate, store)
+    except Exception:
+        db.rollback()
+        raise
 
 
-def _approve_pending_candidate(db: Session, cid: int, payload):
+def _approve_pending_candidate(db: Session, cid: int, payload, *, commit: bool = True):
     candidate = pending_repository.get_pending_candidate_by_id(db, cid)
     if not candidate:
         raise HTTPException(status_code=404, detail="pending candidate not found")
+
+    store = store_repository.get_store_by_slug(db, candidate.source_slug)
 
     if candidate.status != "PENDING":
         raise HTTPException(status_code=400, detail="candidate already reviewed")
@@ -158,8 +180,9 @@ def _approve_pending_candidate(db: Session, cid: int, payload):
             candidate,
             status="APPROVED",
             matched_release_id=listing.release_id,
+            commit=commit,
         )
-        return _to_pending_candidate_out(candidate, store_repository.get_store_by_slug(db, candidate.source_slug))
+        return _to_pending_candidate_out(candidate, store)
 
     release = None
     release_id = payload.releaseId or (str(candidate.matched_release_id) if candidate.matched_release_id else None)
@@ -180,6 +203,7 @@ def _approve_pending_candidate(db: Session, cid: int, payload):
             artist_name=artist_name,
             album_title=album_title,
             cover_image_url=payload.coverImageUrl or candidate.cover_image_url,
+            commit=False,
         )
 
     existing_store_listing = listing_repository.get_listing_by_release_and_store(
@@ -193,8 +217,9 @@ def _approve_pending_candidate(db: Session, cid: int, payload):
             candidate,
             status="APPROVED",
             matched_release_id=release.id,
+            commit=commit,
         )
-        return _to_pending_candidate_out(candidate, store_repository.get_store_by_slug(db, candidate.source_slug))
+        return _to_pending_candidate_out(candidate, store)
 
     listing_repository.create_listing(
         db,
@@ -203,6 +228,7 @@ def _approve_pending_candidate(db: Session, cid: int, payload):
         source_product_title=candidate.source_product_title,
         url=candidate.url,
         price=payload.price if payload.price is not None else candidate.price,
+        commit=False,
     )
 
     pending_repository.update_pending_candidate_status(
@@ -210,8 +236,14 @@ def _approve_pending_candidate(db: Session, cid: int, payload):
         candidate,
         status="APPROVED",
         matched_release_id=release.id,
+        commit=False,
     )
-    return _to_pending_candidate_out(candidate, store_repository.get_store_by_slug(db, candidate.source_slug))
+
+    if commit:
+        db.commit()
+        db.refresh(candidate)
+
+    return _to_pending_candidate_out(candidate, store)
 
 
 def approve_pending_candidate(db: Session, candidate_id: str, payload):
@@ -220,7 +252,11 @@ def approve_pending_candidate(db: Session, candidate_id: str, payload):
     except ValueError:
         raise HTTPException(status_code=400, detail="invalid pending candidate id")
 
-    return _approve_pending_candidate(db, cid, payload)
+    try:
+        return _approve_pending_candidate(db, cid, payload)
+    except Exception:
+        db.rollback()
+        raise
 
 
 def reject_pending_candidate(db: Session, candidate_id: str, payload):
@@ -233,35 +269,47 @@ def reject_pending_candidate(db: Session, candidate_id: str, payload):
     if not candidate:
         raise HTTPException(status_code=404, detail="pending candidate not found")
 
-    pending_repository.update_pending_candidate_status(
-        db,
-        candidate,
-        status="REJECTED",
-    )
-    return _to_pending_candidate_out(candidate, store_repository.get_store_by_slug(db, candidate.source_slug))
+    store = store_repository.get_store_by_slug(db, candidate.source_slug)
 
-
-def bulk_reject_pending_candidates(db: Session, candidate_ids: List[str]):
-    updated_count = 0
-
-    for candidate_id in candidate_ids:
-        try:
-            cid = int(candidate_id)
-        except ValueError:
-            continue
-
-        candidate = pending_repository.get_pending_candidate_by_id(db, cid)
-        if not candidate or candidate.status != "PENDING":
-            continue
-
+    try:
         pending_repository.update_pending_candidate_status(
             db,
             candidate,
             status="REJECTED",
         )
-        updated_count += 1
+        return _to_pending_candidate_out(candidate, store)
+    except Exception:
+        db.rollback()
+        raise
 
-    return {"updatedCount": updated_count}
+
+def bulk_reject_pending_candidates(db: Session, candidate_ids: List[str]):
+    updated_count = 0
+
+    try:
+        for candidate_id in candidate_ids:
+            try:
+                cid = int(candidate_id)
+            except ValueError:
+                continue
+
+            candidate = pending_repository.get_pending_candidate_by_id(db, cid)
+            if not candidate or candidate.status != "PENDING":
+                continue
+
+            pending_repository.update_pending_candidate_status(
+                db,
+                candidate,
+                status="REJECTED",
+                commit=False,
+            )
+            updated_count += 1
+
+        db.commit()
+        return {"updatedCount": updated_count}
+    except Exception:
+        db.rollback()
+        raise
 
 
 def bulk_approve_pending_candidates(db: Session, items):
@@ -274,11 +322,16 @@ def bulk_approve_pending_candidates(db: Session, items):
             continue
 
         try:
-            _approve_pending_candidate(db, cid, item)
+            _approve_pending_candidate(db, cid, item, commit=False)
+            db.commit()
             updated_count += 1
         except HTTPException as error:
+            db.rollback()
             if error.status_code in {400, 404}:
                 continue
+            raise
+        except Exception:
+            db.rollback()
             raise
 
     return {"updatedCount": updated_count}
@@ -297,5 +350,11 @@ def reopen_pending_candidate(db: Session, candidate_id: str):
     if candidate.status != "REJECTED":
         raise HTTPException(status_code=400, detail="candidate is not rejected")
 
-    reopened_candidate = pending_repository.reopen_pending_candidate(db, candidate)
-    return _to_pending_candidate_out(reopened_candidate, store_repository.get_store_by_slug(db, reopened_candidate.source_slug))
+    store = store_repository.get_store_by_slug(db, candidate.source_slug)
+
+    try:
+        reopened_candidate = pending_repository.reopen_pending_candidate(db, candidate)
+        return _to_pending_candidate_out(reopened_candidate, store)
+    except Exception:
+        db.rollback()
+        raise
