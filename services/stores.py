@@ -45,11 +45,10 @@ def delete_store(db: Session, store_id: str):
     if not store:
         raise HTTPException(status_code=404, detail="store not found")
 
-    listing_count = listing_repository.count_listings_by_store_slug(db, str(store.slug))
-    if listing_count > 0:
+    if listing_repository.exists_listing_by_store_slug(db, str(store.slug)):
         raise HTTPException(
             status_code=400,
-            detail=f"store is referenced by {listing_count} listings",
+            detail="store is referenced by existing listings",
         )
 
     store_repository.delete_store(db, store)

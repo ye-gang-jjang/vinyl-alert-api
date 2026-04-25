@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
 from models import Listing
@@ -22,6 +23,22 @@ def get_listing_by_release_and_store(db: Session, release_id: int, source_slug: 
         db.query(Listing)
         .filter(Listing.release_id == release_id, Listing.source_slug == source_slug)
         .first()
+    )
+
+
+def exists_listing_by_release_id(db: Session, release_id: int) -> bool:
+    return bool(
+        db.execute(
+            select(exists().where(Listing.release_id == release_id))
+        ).scalar()
+    )
+
+
+def exists_listing_by_store_slug(db: Session, store_slug: str) -> bool:
+    return bool(
+        db.execute(
+            select(exists().where(Listing.source_slug == store_slug))
+        ).scalar()
     )
 
 

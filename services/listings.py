@@ -63,9 +63,9 @@ def update_listing(db: Session, listing_id: str, payload):
 
     if changed:
         listing.collected_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(listing)
 
-    db.commit()
-    db.refresh(listing)
     store = store_repository.get_store_by_slug(db, listing.source_slug)
     store_map = {str(store.slug): store} if store else {}
 

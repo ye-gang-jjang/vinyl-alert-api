@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from repositories import listings as listing_repository
 from repositories import releases as release_repository
 from repositories import stores as store_repository
 from schemas.stores import StoreRefOut
@@ -173,7 +174,7 @@ def delete_release(db: Session, release_id: str):
     if not release:
         raise HTTPException(status_code=404, detail="Release not found")
 
-    if release.listings and len(release.listings) > 0:
+    if listing_repository.exists_listing_by_release_id(db, release.id):
         raise HTTPException(
             status_code=400,
             detail="먼저 해당 릴리즈의 판매처를 삭제해 주세요.",
