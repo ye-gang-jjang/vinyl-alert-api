@@ -11,6 +11,8 @@ class ListingIn(BaseModel):
 
 
 class ListingUpdate(BaseModel):
+    storeSlug: Optional[str] = None
+    sourceProductTitle: Optional[str] = None
     price: Optional[int] = None
 
 

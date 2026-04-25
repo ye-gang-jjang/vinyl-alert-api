@@ -52,6 +52,44 @@ def update_listing(db: Session, listing_id: str, payload):
     fields = payload.model_fields_set
     changed = False
 
+    if "storeSlug" in fields:
+        next_store_slug = (payload.storeSlug or "").strip()
+        if not next_store_slug:
+            raise HTTPException(status_code=400, detail="존재하지 않는 스토어입니다.")
+
+        if listing.source_slug != next_store_slug:
+            store = store_repository.get_store_by_slug(db, next_store_slug)
+            if not store:
+                raise HTTPException(status_code=400, detail="존재하지 않는 스토어입니다.")
+
+            existing_store_listing = listing_repository.get_listing_by_release_and_store(
+                db,
+                listing.release_id,
+                next_store_slug,
+            )
+            if existing_store_listing and existing_store_listing.id != listing.id:
+                raise HTTPException(status_code=409, detail="listing already exists for release and store")
+
+            existing_url_listing = listing_repository.get_listing_by_store_and_url(
+                db,
+                next_store_slug,
+                listing.url,
+            )
+            if existing_url_listing and existing_url_listing.id != listing.id:
+                raise HTTPException(status_code=409, detail="listing already exists")
+
+            listing.source_slug = next_store_slug
+            changed = True
+
+    if "sourceProductTitle" in fields:
+        next_title = (payload.sourceProductTitle or "").strip()
+        if not next_title:
+            raise HTTPException(status_code=400, detail="source product title is required")
+
+        if listing.source_product_title != next_title:
+            listing.source_product_title = next_title
+            changed = True
+
     if "price" in fields:
         if payload.price is None:
             if listing.price is not None:
