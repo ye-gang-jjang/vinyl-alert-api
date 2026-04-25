@@ -1,4 +1,4 @@
-"""cleanup obslete columns
+"""cleanup obsolete columns
 
 Revision ID: c36cee0ba175
 Revises: 633144c54ee9
@@ -6,10 +6,6 @@ Create Date: 2026-02-07 20:26:50.530185
 
 """
 from typing import Sequence, Union
-
-from alembic import op
-import sqlalchemy as sa
-
 
 # revision identifiers, used by Alembic.
 revision: str = 'c36cee0ba175'

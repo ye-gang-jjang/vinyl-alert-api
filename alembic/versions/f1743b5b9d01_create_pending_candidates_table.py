@@ -1,7 +1,7 @@
 """create pending candidates table
 
 Revision ID: f1743b5b9d01
-Revises: 0ed1a1fca229
+Revises: 283696c33eca
 Create Date: 2026-04-09 18:30:00.000000
 """
 
