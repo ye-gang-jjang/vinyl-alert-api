@@ -1,12 +1,21 @@
 from typing import Optional
 from sqlalchemy import func
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, load_only, selectinload
 
 from models import Listing, Release
 
 
 def list_releases(db: Session):
     return db.query(Release).order_by(Release.id.desc()).all()
+
+
+def list_releases_for_matching(db: Session):
+    return (
+        db.query(Release)
+        .options(load_only(Release.id, Release.artist_name, Release.album_title, Release.cover_image_url))
+        .order_by(Release.id.desc())
+        .all()
+    )
 
 
 def list_artist_releases(db: Session, artist_name: str):

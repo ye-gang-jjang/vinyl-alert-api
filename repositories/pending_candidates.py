@@ -37,6 +37,12 @@ def get_pending_candidate_by_id(db: Session, candidate_id: int):
     return db.query(PendingCandidate).filter(PendingCandidate.id == candidate_id).first()
 
 
+def get_pending_candidates_by_ids(db: Session, candidate_ids: list[int]):
+    if not candidate_ids:
+        return []
+    return db.query(PendingCandidate).filter(PendingCandidate.id.in_(candidate_ids)).all()
+
+
 def get_pending_candidate_by_url(db: Session, url: str):
     return db.query(PendingCandidate).filter(PendingCandidate.url == url).first()
 
