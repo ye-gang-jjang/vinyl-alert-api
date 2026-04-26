@@ -7,7 +7,7 @@ from repositories import listings as listing_repository
 from repositories import releases as release_repository
 from repositories import stores as store_repository
 from schemas.stores import StoreRefOut
-from services.serializers import to_release_dict, to_release_summary_with_store_map
+from services.serializers import serialize_dt, to_release_dict, to_release_summary_with_store_map
 
 DEFAULT_PAGE_SIZE = 18
 MAX_PAGE_SIZE = 100
@@ -86,6 +86,40 @@ def get_release_summaries(
         for store in stores
     ]
     return paginated
+
+
+def get_release_options(
+    db: Session,
+    page: Optional[int] = None,
+    page_size: Optional[int] = None,
+    sort: str = "default",
+):
+    safe_page = _normalize_page(page)
+    safe_page_size = _normalize_page_size(page_size)
+    releases, total = release_repository.list_release_options_page(
+        db,
+        page=safe_page,
+        page_size=safe_page_size,
+        sort=sort,
+    )
+
+    items = [
+        {
+            "id": str(release.id),
+            "artistName": release.artist_name,
+            "albumTitle": release.album_title,
+            "coverImageUrl": release.cover_image_url,
+            "latestCollectedAt": serialize_dt(getattr(release, "created_at", None)),
+        }
+        for release in releases
+    ]
+
+    return _build_paginated_payload(
+        items,
+        total=total,
+        page=safe_page,
+        page_size=safe_page_size,
+    )
 
 
 def get_artist_release_summaries(

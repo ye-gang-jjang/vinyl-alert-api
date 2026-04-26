@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from core.deps import get_db
 from schemas.releases import (
+    PaginatedReleaseOptionsOut,
     PaginatedReleaseSummariesOut,
     ReleaseIn,
     ReleaseOut,
@@ -36,6 +37,21 @@ def get_release_summaries(
         page_size=page_size,
         artist_name=artist,
         store_slug=store,
+        sort=sort,
+    )
+
+
+@router.get("/release-options", response_model=PaginatedReleaseOptionsOut)
+def get_release_options(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, alias="pageSize", ge=1, le=100),
+    sort: str = Query(default="default"),
+    db: Session = Depends(get_db),
+):
+    return release_service.get_release_options(
+        db,
+        page=page,
+        page_size=page_size,
         sort=sort,
     )
 

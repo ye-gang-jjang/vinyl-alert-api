@@ -36,6 +36,14 @@ class ReleaseSummaryOut(BaseModel):
     collectedAt: Optional[str] = None
 
 
+class ReleaseOptionOut(BaseModel):
+    id: str
+    artistName: str
+    albumTitle: str
+    coverImageUrl: Optional[str] = None
+    latestCollectedAt: Optional[str] = None
+
+
 class ReleaseViewCountOut(BaseModel):
     id: str
     viewCount: int
@@ -49,3 +57,11 @@ class PaginatedReleaseSummariesOut(BaseModel):
     totalPages: int
     artists: list[str]
     stores: list[StoreRefOut]
+
+
+class PaginatedReleaseOptionsOut(BaseModel):
+    items: list[ReleaseOptionOut]
+    page: int
+    pageSize: int
+    total: int
+    totalPages: int

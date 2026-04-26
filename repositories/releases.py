@@ -76,6 +76,36 @@ def list_release_summaries_page(
     return releases, total
 
 
+def list_release_options_page(
+    db: Session,
+    page: int,
+    page_size: int,
+    sort: str = "default",
+):
+    filtered_query = db.query(Release)
+    total = filtered_query.count()
+
+    if sort == "artist_asc":
+        ordered_query = filtered_query.order_by(Release.artist_name.asc(), Release.id.desc())
+    elif sort == "album_asc":
+        ordered_query = filtered_query.order_by(Release.album_title.asc(), Release.id.desc())
+    else:
+        ordered_query = (
+            filtered_query.outerjoin(Listing)
+            .group_by(Release.id)
+            .order_by(func.max(Listing.collected_at).desc(), Release.id.desc())
+        )
+
+    releases = (
+        ordered_query.options(load_only(Release.id, Release.artist_name, Release.album_title, Release.cover_image_url))
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    return releases, total
+
+
 def get_release_by_id(db: Session, release_id: int):
     return db.query(Release).filter(Release.id == release_id).first()
 
