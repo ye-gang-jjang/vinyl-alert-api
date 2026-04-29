@@ -79,6 +79,7 @@ def _approve_pending_candidate_record(db: Session, candidate, payload, store, *,
 
     release = None
     release_id = payload.releaseId or (str(candidate.matched_release_id) if candidate.matched_release_id else None)
+    incoming_cover_image_url = payload.coverImageUrl or candidate.cover_image_url
 
     if release_id:
         try:
@@ -88,6 +89,12 @@ def _approve_pending_candidate_record(db: Session, candidate, payload, store, *,
         release = release_repository.get_release_by_id(db, rid)
         if not release:
             raise HTTPException(status_code=404, detail="release not found")
+        release_repository.fill_release_cover_image_if_missing(
+            db,
+            release,
+            incoming_cover_image_url,
+            commit=False,
+        )
     else:
         artist_name = payload.artistName or candidate.artist_name
         album_title = payload.albumTitle or candidate.album_title
@@ -95,7 +102,7 @@ def _approve_pending_candidate_record(db: Session, candidate, payload, store, *,
             db,
             artist_name=artist_name,
             album_title=album_title,
-            cover_image_url=payload.coverImageUrl or candidate.cover_image_url,
+            cover_image_url=incoming_cover_image_url,
             commit=False,
         )
 

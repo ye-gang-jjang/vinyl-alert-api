@@ -132,6 +132,26 @@ def create_release(
     return release
 
 
+def fill_release_cover_image_if_missing(
+    db: Session,
+    release: Release,
+    cover_image_url: Optional[str],
+    *,
+    commit: bool = True,
+):
+    if release.cover_image_url or not cover_image_url:
+        return release
+
+    release.cover_image_url = cover_image_url
+    db.add(release)
+    if commit:
+        db.commit()
+        db.refresh(release)
+    else:
+        db.flush()
+    return release
+
+
 def increment_release_view_count(db: Session, release: Release):
     release.view_count += 1
     db.add(release)
