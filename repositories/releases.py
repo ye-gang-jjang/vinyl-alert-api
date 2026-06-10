@@ -18,15 +18,6 @@ def list_releases_for_matching(db: Session):
     )
 
 
-def list_artist_releases(db: Session, artist_name: str):
-    return (
-        db.query(Release)
-        .filter(Release.artist_name == artist_name)
-        .order_by(Release.id.desc())
-        .all()
-    )
-
-
 def list_artist_names(db: Session):
     rows = db.query(Release.artist_name).distinct().order_by(Release.artist_name.asc()).all()
     return [artist_name for artist_name, in rows]

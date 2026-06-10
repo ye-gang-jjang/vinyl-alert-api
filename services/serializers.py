@@ -40,11 +40,6 @@ def _listing_out_from_store(listing, store: Optional[Store]):
     )
 
 
-def to_listing_dict(listing, db: Session):
-    store = store_repository.get_store_by_slug(db, listing.source_slug)
-    return _listing_out_from_store(listing, store)
-
-
 def to_listing_dict_with_store_map(listing, store_map: dict[str, Store]):
     return _listing_out_from_store(listing, store_map.get(str(listing.source_slug)))
 
@@ -75,51 +70,6 @@ def to_release_dict_with_store_map(release, store_map: dict[str, Store]):
         latestCollectedAt=latest_collected_at,
         storesCount=len(sorted_listings),
         listings=[to_listing_dict_with_store_map(listing, store_map) for listing in sorted_listings],
-        collectedAt=serialize_dt(getattr(release, "created_at", None)),
-    )
-
-
-def to_release_summary_dict(release, db: Session):
-    latest_collected_at = None
-    if release.listings:
-        latest_collected_at = serialize_dt(max(listing.collected_at for listing in release.listings))
-
-    slugs = list({str(listing.source_slug) for listing in release.listings if listing.source_slug is not None})
-    stores = store_repository.get_stores_by_slugs(db, slugs)
-    store_refs = sorted(
-        [
-            StoreRefOut(
-                slug=str(store.slug),
-                name=store.name,
-                iconUrl=store.icon_url,
-            )
-            for store in stores
-        ],
-        key=lambda store: store.name,
-    )
-
-    if not store_refs:
-        fallback_names = sorted({str(listing.source_slug) for listing in release.listings})
-        store_refs = [
-            StoreRefOut(slug=name, name=name, iconUrl="")
-            for name in fallback_names
-        ]
-    elif len(store_refs) < len(slugs):
-        known_slugs = {store.slug for store in store_refs}
-        missing_slugs = sorted([slug for slug in slugs if slug not in known_slugs])
-        store_refs.extend(
-            [StoreRefOut(slug=slug, name=slug, iconUrl="") for slug in missing_slugs]
-        )
-
-    return ReleaseSummaryOut(
-        id=str(release.id),
-        artistName=release.artist_name,
-        albumTitle=release.album_title,
-        coverImageUrl=release.cover_image_url,
-        viewCount=release.view_count,
-        latestCollectedAt=latest_collected_at,
-        storesCount=len(store_refs),
-        stores=store_refs,
         collectedAt=serialize_dt(getattr(release, "created_at", None)),
     )
 
